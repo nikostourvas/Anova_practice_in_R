@@ -1,0 +1,116 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data_menexes <- read.csv("data.csv")
+
+data_menexes$year <- as.factor(data_menexes$year)
+data_menexes$loc <- as.factor(data_menexes$loc)
+data_menexes$block <- as.factor(data_menexes$block)
+data_menexes$fa <- as.factor(data_menexes$fa)
+data_menexes$y <- as.numeric(data_menexes$y)
+
+str(data_menexes)
+```
+
+```{r}
+my_anova <- aov(y ~ year + loc + loc*year + block*loc*year + fa + fa*loc+ fa*year + fa*loc*year, data = data_menexes)
+```
+
+```{r}
+library(car)
+Anova(my_anova, type = "III")
+detach(car)
+```
+
+```{r}
+library(lme4)
+lme4_model <- lmer(y ~ year + loc + year*loc + (1 | block) + fa + fa*loc + fa*year + fa*loc*year, data = data_menexes)
+```
+
+```{r}
+anova(lme4_model)
+```
+
+# simpler approach
+
+split data by year and loc
+```{r}
+library(dplyr)
+first_year_loc <- data_menexes %>% 
+  filter(year == 1) %>% 
+  filter(loc == 1)
+
+str(first_year_loc)
+```
+
+```{r}
+lme4_model <- lmer(y ~ (1 | block) + fa, data = first_year_loc)
+anova(lme4_model)
+```
+
+
+```{r}
+# make sure settings match with SPSS
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+my_anova <- aov(y ~ block + fa, data = first_year_loc)
+summary(my_anova)
+```
+with package car
+```{r}
+library(car)
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+Anova(my_anova, type = "III")
+```
+
+# Split plot RCBD
+split data by loc
+```{r}
+first_loc <- data_menexes %>% 
+  filter(loc == 1)
+
+str(first_loc)
+```
+
+```{r}
+# make sure settings match with SPSS
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+my_anova <- aov(y ~ year + Error(block/year) + fa + fa:year, data = first_loc)
+summary(my_anova)
+```
+
+with lme4
+as nested RCBD
+```{r}
+library(lmerTest)
+lme4_model <- lmer(y ~ year + (1 | block/year) + fa / year, data = first_loc)
+anova(lme4_model)
+```
+
+as split plot RCBD
+```{r}
+lme4_model <- lmer(y ~ year + (1 | block:year) + fa + fa:year, data = first_loc)
+
+anova(lme4_model)
+```
+
+The whole experiment
+```{r}
+str(data_menexes)
+```
+
+as nested
+```{r}
+lme4_model <- lmer(y ~ year + loc + year:loc + (1 | block)/year:loc + fa + fa/year + fa/loc + fa/year:loc, data = data_menexes)
+
+anova(lme4_model)
+```

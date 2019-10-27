@@ -1,0 +1,85 @@
+---
+title: "Anova in R"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is based on https://stat.ethz.ch/%7Emeier/teaching/anova/completely-randomized-designs.html
+
+# CRD
+```{r}
+treat.ord <- rep(c("A", "B", "C", "D"), each = 5) ## could also use LETTERS[1:4]
+treat.ord
+```
+
+Randomize on the field
+```{r}
+sample(treat.ord) ## random permutation
+```
+
+Example data set PlantGrowth
+```{r}
+data(PlantGrowth)
+str(PlantGrowth)
+```
+
+```{r}
+boxplot(weight ~ group, data = PlantGrowth)
+```
+
+the response is listed on the left-hand side and the (only) predictor is on the right hand side of the tilde sign “~”.
+```{r}
+fit <- aov(weight ~ group, data = PlantGrowth)
+## Have a look at the estimated coefficients
+coef(fit)
+```
+
+```{r}
+dummy.coef(fit)
+```
+
+estimated means for groups
+```{r}
+predict(fit, newdata = data.frame(group = c("ctrl", "trt1", "trt2")))
+```
+
+Change side-constraint
+```{r}
+options(contrasts = c("contr.sum", "contr.poly")) 
+fit2 <- aov(weight ~ group, data = PlantGrowth)
+coef(fit2)
+```
+
+```{r}
+dummy.coef(fit2)
+```
+
+numerator = αριθμητής
+denominator = παρονομαστής
+
+ANOVA table
+```{r}
+summary(fit)
+```
+
+# 8 Split plot
+```{r}
+john <- read.table("http://stat.ethz.ch/~meier/teaching/data/john.dat", header = TRUE)
+john[, "plot"] <- factor(john[, "plot"])
+str(john)
+```
+
+```{r}
+library(lmerTest)
+fit <- lmer(mass ~ fertilizer * variety + (1 | plot), data = john)
+```
+
+```{r}
+anova(fit)
+```
+
+
+

@@ -1,0 +1,80 @@
+---
+title: "RCBD over time and locations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+exp_data <- read.csv("../data/data.csv")
+
+exp_data$year <- as.factor(exp_data$year)
+exp_data$loc <- as.factor(exp_data$loc)
+exp_data$block <- as.factor(exp_data$block)
+exp_data$fa <- as.factor(exp_data$fa)
+exp_data$y <- as.numeric(exp_data$y)
+
+str(exp_data)
+```
+
+split data by year and loc
+```{r}
+library(dplyr)
+first_year_loc <- exp_data %>% 
+  filter(year == 1) %>% 
+  filter(loc == 1)
+
+str(first_year_loc)
+```
+
+```{r}
+if(!require(lme4)){
+    install.packages("lme4")
+    library(lme4)
+}
+
+lme4_model <- lmer(y ~ (1 | block) + fa, data = first_year_loc)
+anova(lme4_model)
+```
+
+
+```{r}
+# make sure settings match with SPSS
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+my_anova <- aov(y ~ block + fa, data = first_year_loc)
+summary(my_anova)
+```
+with package car
+```{r}
+library(car)
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+Anova(my_anova, type = "III")
+```
+
+# Split plot RCBD
+split data by loc
+```{r}
+first_loc <- exp_data %>% 
+  filter(loc == 1)
+
+str(first_loc)
+```
+
+```{r}
+# make sure settings match with SPSS
+options(contrasts = c("contr.helmert", "contr.poly"))
+
+my_anova <- aov(y ~ year + Error(block/year) + fa + fa:year, data = first_loc)
+summary(my_anova)
+```
+
+as split plot RCBD
+```{r}
+lme4_model <- lmer(y ~ year + (1 | block:year) + fa + fa:year, data = first_loc)
+
+anova(lme4_model)
+```
