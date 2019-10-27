@@ -1,0 +1,19 @@
+Type: Compendium
+Package: Anova Practice in R
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.1
+Authors@R: 
+    person(given = "Nikolaos",
+           family = "Tourvas",
+           email = "nikostourvas@gmail.com")
+Description: Analyze mixed model designs in R
+License: What license it uses
+Depends: 
+    car,
+    dplyr,
+    knitr,
+    lme4,
+    lmerTest,
+    rmarkdown
+Encoding: UTF-8
+LazyData: true

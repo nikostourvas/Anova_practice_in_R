@@ -78,3 +78,23 @@ lme4_model <- lmer(y ~ year + (1 | block:year) + fa + fa:year, data = first_loc)
 
 anova(lme4_model)
 ```
+
+```{r}
+library(devtools)
+if(!require(holepunch)){
+    install_github("karthik/holepunch")
+    library(holepunch)
+}
+```
+
+```{r eval-F}
+write_compendium_description(package = "Anova Practice in R", 
+                             description = "Analyze mixed model designs in R")
+```
+
+```{r}
+write_dockerfile(maintainer = "Nikolaos Tourvas") 
+
+generate_badge()
+```
+
