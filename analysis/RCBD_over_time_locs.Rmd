@@ -7,6 +7,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Εισαγωγή δεδομένων και ρυθμίσεων
+```{r}
+# make sure settings match with SPSS
+options(contrasts = c("contr.helmert", "contr.poly"))
+```
+
 ```{r}
 exp_data <- read.csv("../data/data.csv")
 
@@ -19,21 +25,56 @@ exp_data$y <- as.numeric(exp_data$y)
 str(exp_data)
 ```
 
-split data by year and loc
 ```{r}
-library(dplyr)
-first_year_loc <- exp_data %>% 
-  filter(year == 1) %>% 
-  filter(loc == 1)
+library(ggplot2)
 
-str(first_year_loc)
+ggplot(exp_data, aes(x = fa, y = y)) +
+  geom_bar(stat = "identity") +
+  facet_grid(loc ~ year)
 ```
 
 ```{r}
-if(!require(lme4)){
-    install.packages("lme4")
-    library(lme4)
-}
+library("ggpubr")
+ggline(exp_data, x = "fa", y = "y", color = "loc",
+       add = "mean_se", 
+       palette = c("#00AFBB", "#E7B800", "#000000")) +
+  facet_grid(~ year)
+```
+
+```{r}
+# does not make sense here
+# use it after every anova table
+library(dplyr)
+res <- group_by(exp_data, year, loc, fa) %>%
+  summarise(
+    count = n(),
+    mean = mean(y, na.rm = TRUE),
+    sd = sd(y, na.rm = TRUE)
+  )
+
+res
+```
+
+```{r}
+ggplot(res, aes(x=fa, y=mean, color=loc, group=loc)) +
+  geom_point() +
+  geom_line() +
+  # geom_errorbar(aes(ymax = mean + sd,
+  #                   ymin = mean - sd),
+  #               width = 0.1) +
+  facet_wrap(~ year) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800", "#000000"))
+```
+
+# Διαχωρισμός δεδομένων ανά έτος και τοποθεσία
+```{r}
+first_year_loc <- exp_data %>% 
+  filter(year == 1) %>% 
+  filter(loc == 1)
+```
+
+```{r}
+library(lme4)
 
 lme4_model <- lmer(y ~ (1 | block) + fa, data = first_year_loc)
 anova(lme4_model)
@@ -41,16 +82,13 @@ anova(lme4_model)
 
 
 ```{r}
-# make sure settings match with SPSS
-options(contrasts = c("contr.helmert", "contr.poly"))
-
 my_anova <- aov(y ~ block + fa, data = first_year_loc)
 summary(my_anova)
 ```
+
 with package car
 ```{r}
 library(car)
-options(contrasts = c("contr.helmert", "contr.poly"))
 
 Anova(my_anova, type = "III")
 ```
@@ -60,41 +98,76 @@ split data by loc
 ```{r}
 first_loc <- exp_data %>% 
   filter(loc == 1)
-
-str(first_loc)
 ```
 
 ```{r}
-# make sure settings match with SPSS
-options(contrasts = c("contr.helmert", "contr.poly"))
-
-my_anova <- aov(y ~ year + Error(block/year) + fa + fa:year, data = first_loc)
-summary(my_anova)
-```
-
-as split plot RCBD
-```{r}
+library(lmerTest)
 lme4_model <- lmer(y ~ year + (1 | block:year) + fa + fa:year, data = first_loc)
 
 anova(lme4_model)
 ```
 
+package car - EXACTLY same as SPSS
 ```{r}
-library(devtools)
-if(!require(holepunch)){
-    install_github("karthik/holepunch")
-    library(holepunch)
-}
+mod <- lm(y ~ year + block:year + fa + fa:year, data = first_loc)
+Anova(mod, type = 3)
 ```
 
-```{r eval-F}
-write_compendium_description(package = "Anova Practice in R", 
-                             description = "Analyze mixed model designs in R")
+same ANOVA with slightly easier syntax
+```{r}
+mod2 <- lm(y ~ year/block + year * fa, data = first_loc)
+Anova(mod2, type=3)
+```
+
+## Check assumptions
+
+Homogeneity of variances
+```{r}
+plot(lme4_model)
+plot(mod, 1)
+```
+
+Levene's test for fa
+```{r}
+leveneTest(y ~ fa, data = exp_data)
+```
+
+Levene's test for year
+```{r}
+leveneTest(y ~ year, data = exp_data)
+```
+
+Normality
+```{r fig.height=4, fig.width=4}
+qqnorm(resid(lme4_model))
+qqline(resid(lme4_model))
+
+plot(mod, 2)
+```
+
+
+# The whole experiment
+as nested
+```{r}
+lme4_model <- lmer(y ~ year + loc + year:loc + (1 | block)/year:loc + fa + fa/year + fa/loc + fa/year:loc, data = exp_data)
+
+anova(lme4_model)
 ```
 
 ```{r}
-write_dockerfile(maintainer = "Nikolaos Tourvas") 
+mod_combined <- lm(y ~ year + loc + year:loc + block:year:loc + fa + year:fa + loc:fa + year:loc:fa, data = exp_data)
 
-generate_badge()
+Anova(mod_combined, type=3)
+```
+
+with easier syntax
+```{r}
+mod_combined2 <- lm(y~ year:loc/block + year * loc * fa, data=exp_data)
+
+Anova(mod_combined2, type=3)
+```
+
+```{r}
+library(sjstats)
 ```
 
