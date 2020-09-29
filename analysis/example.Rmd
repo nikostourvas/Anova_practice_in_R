@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "example"
 output: html_document
 ---
 
@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-data_menexes <- read.csv("data.csv")
+data_menexes <- read.csv("../data/data.csv")
 
 data_menexes$year <- as.factor(data_menexes$year)
 data_menexes$loc <- as.factor(data_menexes$loc)
@@ -26,7 +26,6 @@ my_anova <- aov(y ~ year + loc + loc*year + block*loc*year + fa + fa*loc+ fa*yea
 ```{r}
 library(car)
 Anova(my_anova, type = "III")
-detach(car)
 ```
 
 ```{r}
@@ -91,7 +90,7 @@ summary(my_anova)
 with lme4
 as nested RCBD
 ```{r}
-library(lmerTest)
+# library(lmerTest)
 lme4_model <- lmer(y ~ year + (1 | block/year) + fa / year, data = first_loc)
 anova(lme4_model)
 ```
@@ -110,7 +109,29 @@ str(data_menexes)
 
 as nested
 ```{r}
-lme4_model <- lmer(y ~ year + loc + year:loc + (1 | block)/year:loc + fa + fa/year + fa/loc + fa/year:loc, data = data_menexes)
+lme4_model <- lmer(y ~ year + loc + year:loc + (1 | block)/year:loc + fa + fa/year + fa/loc + fa/year:loc, data = data_menexes, REML = TRUE)
 
 anova(lme4_model)
+
+car::Anova(lme4_model)
 ```
+
+```{r}
+summary(lme4_model)
+```
+
+```{r}
+#Robust way
+library(robustlmm)
+
+r_mod <- rlmer(y ~ year + loc + year:loc + (1 | block)/year:loc + fa + fa/year + fa/loc + fa/year:loc, data = data_menexes)
+
+summary(r_mod)
+```
+
+
+
+```{r}
+plot(r_mod)
+```
+
